@@ -23,6 +23,7 @@
 #   * got name
 #   * got phone number
 # * tab-delimited output
+# * rename to okc.py
 #
 
 import sys
