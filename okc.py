@@ -6,7 +6,9 @@
 # TODO:
 # * utf8 (chinese) output isn't working. parsing seems to work fine not sure
 # why the output is fucked.
-# * scrape profiles (cache into redis or something)
+# * profiles
+#   * cache in redis
+#   * try and pull down star ratings given (it's in javascript so it may not be possible)
 # * feature extraction for messages:
 #   * number of words
 #   * number of questions
@@ -23,7 +25,6 @@
 #   * got name
 #   * got phone number
 # * tab-delimited output
-# * rename to okc.py
 #
 
 import sys
@@ -35,9 +36,50 @@ import traceback
 from dateutil.parser import parse
 from scrape import *
 
-def parseprofile(profilepage):
+replycolormap = {'red': 'very selectively', 'yellow': 'selectively', 'green': 'often', '': 'contacted'}
+
+def getselectivity(profpage):
+    distance = int(profpage.find(re.compile('\d+ miles')).text.split()[0])
+
+    replies = ''
+    for color in ['red', 'yellow', 'green']:
+        try:
+            replies = profpage.first('span', class_=color)
+            replies = color
+        except ScrapeError:
+            pass
+
+    return replycolormap[replies]
+
+def parseprofile(profpage):
     """Parse user's profile (both for archival and statistics purposes."""
-    pass
+    # This has annoying JSON encoding (\u2019 for '). Fix it.
+    essays = [(atag.text, atag.next('div').text) for atag in profpage.all('a', class_='essay_title')]
+    detailsdiv = profpage.first('div', id='profile_details')
+    profdetails = [(x.text, y.text) for (x, y) in zip(detailsdiv.all('dt'), detailsdiv.all('dd'))]
+
+    match = int(profpage.first('span', class_='match').content.split('%')[0])
+    friend = int(profpage.first('span', class_='friend').content.split('%')[0])
+    enemy = int(profpage.first('span', class_='enemy').content.split('%')[0])
+
+    username, age, gender, orientation, relationshipstatus, city, state = \
+            filter(lambda x: x != '/', profpage.first('div', class_='details').text.split())
+
+    replies = getselectivity(profpage)
+
+    return {'essays': dict(essays),
+            'profdetails': dict(profdetails),
+            'match': match,
+            'friend': friend,
+            'enemy': enemy,
+            'username': username,
+            'age': age,
+            'gender': gender,
+            'orientation': orientation,
+            'relationshipstatus': relationshipstatus,
+            'city': city,
+            'state': state,
+            'replies': replies}
 
 def messageurls(messagepage):
     return ['http://www.okcupid.com/messages?readmsg=true&threadid=%s&folder=1' % x.content
@@ -107,6 +149,12 @@ def printparsedmsg(parsedmsg):
                                            parsedmsg['msgmobilep']):
         print('%s <%s>: %s' % (author, str(date), text))
     print('')
+
+def features(parsedmsg):
+    pass
+
+def printtabline(parsedmsg):
+    pass
 
 def main():
     """main function for standalone usage"""
