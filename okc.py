@@ -36,11 +36,10 @@ import traceback
 from dateutil.parser import parse
 from scrape import *
 
-replycolormap = {'red': 'very selectively', 'yellow': 'selectively', 'green': 'often', '': 'contacted'}
+sys.path.append('wulib')
+import wulib as wu
 
-def fuckunicode(s):
-    def isascii(c): return ord(c) < 128
-    return filter(isascii, s)
+replycolormap = {'red': 'very selectively', 'yellow': 'selectively', 'green': 'often', '': 'contacted'}
 
 def getselectivity(profpage):
     distance = int(profpage.find(re.compile('\d+ miles')).text.split()[0])

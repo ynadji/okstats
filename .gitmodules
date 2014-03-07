@@ -1,0 +1,3 @@
+[submodule "wulib"]
+	path = wulib
+	url = https://github.com/ynadji/wulib.git
