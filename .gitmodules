@@ -1,3 +1,6 @@
 [submodule "wulib"]
 	path = wulib
 	url = https://github.com/ynadji/wulib.git
+[submodule "lbls"]
+	path = lbls
+	url = https://github.com/ynadji/lbls.git
