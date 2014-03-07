@@ -127,7 +127,7 @@ def parsemessage(msg):
             'friend': friend,
             'enemy': enemy,
             'activep': activep,
-            'wechosep': 'We chose each other!Reply to this message to contact me.' in msgtexts[0],
+            'wechosep': 'You like each other!' in msg.content,
 
 
             'buddyname': msg.first('title').content.split(' ')[-1],
