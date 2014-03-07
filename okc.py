@@ -38,6 +38,10 @@ from scrape import *
 
 replycolormap = {'red': 'very selectively', 'yellow': 'selectively', 'green': 'often', '': 'contacted'}
 
+def fuckunicode(s):
+    def isascii(c): return ord(c) < 128
+    return filter(isascii, s)
+
 def getselectivity(profpage):
     distance = int(profpage.find(re.compile('\d+ miles')).text.split()[0])
 
@@ -147,7 +151,7 @@ def printparsedmsg(parsedmsg):
                                            parsedmsg['msgauthors'],
                                            parsedmsg['msgdates'],
                                            parsedmsg['msgmobilep']):
-        print('%s <%s>: %s' % (author, str(date), text))
+        print('%s <%s>: %s' % (author, str(date), fuckunicode(text))) # TODO: convert to UTF-8 output
     print('')
 
 def features(parsedmsg):
