@@ -38,6 +38,9 @@ from scrape import *
 
 sys.path.append('wulib')
 import wulib as wu
+sys.path.append('lbls')
+import lbls
+liwcdict = 'lbls/liwcdict.txt'
 
 replycolormap = {'red': 'very selectively', 'yellow': 'selectively', 'green': 'often', '': 'contacted'}
 
@@ -150,11 +153,38 @@ def printparsedmsg(parsedmsg):
                                            parsedmsg['msgauthors'],
                                            parsedmsg['msgdates'],
                                            parsedmsg['msgmobilep']):
-        print('%s <%s>: %s' % (author, str(date), fuckunicode(text))) # TODO: convert to UTF-8 output
+        print('%s <%s>: %s' % (author, str(date), wu.fuckunicode(text))) # TODO: convert to UTF-8 output
     print('')
 
 def features(parsedmsg):
     pass
+
+def printfirstresponsefeatureheader():
+    print '\t'.join(['recipient', 'word.count', 'question.count', 'you.count', 'self.count',
+                     'match.percent', 'friend.percent', 'enemy.percent', 'matched'] \
+                    + lbls.getcolumntitles(liwcdict) + ['responded'])
+
+def printfirstresponsefeatures(parsedmsg, myusername):
+    """Print first response features
+
+    Arguments:
+    - `parsedmsg`:
+    """
+    if parsedmsg['msgauthors'][0] == myusername:
+        liwcresults = lbls.lbls(liwcdict, parsedmsg['msgtexts'][0])
+        words = parsedmsg['msgtexts'][0].split()
+        fields = [parsedmsg['buddyname'],
+                  len(words),
+                  len(re.findall(re.compile('\?+'), parsedmsg['msgtexts'][0])),
+                  len([x for x in words if x.lower() in ['u', 'you']]),
+                  len([x for x in words if x.lower() in ['i', 'me']]),
+                  parsedmsg['match'],
+                  parsedmsg['friend'],
+                  parsedmsg['enemy'],
+                  1 if parsedmsg['wechosep'] else 0] + liwcresults + \
+        [1 if len([x for x in parsedmsg['msgauthors'] if x != parsedmsg['buddyname']]) > 0 else 0]
+
+        print('\t'.join(map(str, fields)))
 
 def printtabline(parsedmsg):
     pass
@@ -165,6 +195,8 @@ def main():
     parser = OptionParser(usage=usage)
     parser.add_option('-u', '--username', default='')
     parser.add_option('-p', '--password', default='')
+    parser.add_option('-c', '--csv', default=False, action='store_true',
+                      help='Dump CSV for first message response')
 
     (options, args) = parser.parse_args()
 
@@ -180,6 +212,9 @@ def main():
     userpage = s.submit(login.first('form', id='loginbox_form'), paramdict=creds)
     inbox = s.go('http://www.okcupid.com/messages')
 
+    if options.csv:
+        printfirstresponsefeatureheader()
+
     while True:
         for url in messageurls(inbox):
             msg = s.go(url)
@@ -187,7 +222,10 @@ def main():
 
             try:
                 parsedmsg = parsemessage(msg)
-                printparsedmsg(parsedmsg)
+                if options.csv:
+                    printfirstresponsefeatures(parsedmsg, creds['username'])
+                else:
+                    printparsedmsg(parsedmsg)
             except:
                 sys.stderr.write('Failed to parse message "%s"\n' % url)
                 traceback.print_exc()
