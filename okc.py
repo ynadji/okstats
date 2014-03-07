@@ -174,7 +174,7 @@ def main():
              'password': options.password if options.password else getpass('password: ')}
 
     login = s.go('http://www.okcupid.com')
-    userpage = s.submit(login.first('form'), paramdict=creds)
+    userpage = s.submit(login.first('form', id='loginbox_form'), paramdict=creds)
     inbox = s.go('http://www.okcupid.com/messages')
 
     while True:
