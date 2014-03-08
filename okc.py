@@ -39,7 +39,8 @@ from scrape import *
 sys.path.append('wulib')
 import wulib as wu
 sys.path.append('lbls')
-import lbls
+#import lbls
+lbls = None
 liwcdict = 'lbls/liwcdict.txt'
 
 replycolormap = {'red': 'very selectively', 'yellow': 'selectively', 'green': 'often', '': 'contacted'}
@@ -88,7 +89,7 @@ def parseprofile(profpage):
             'replies': replies}
 
 def messageurls(messagepage):
-    return ['http://www.okcupid.com/messages?readmsg=true&threadid=%s&folder=1' % x.content
+    return ['http://www.okcupid.com/messages?readmsg=true&threadid=%s&folder=2' % x.content
             for x in messagepage.findall(re.compile(r'threadid=(\d+)'), group=1)]
 
 def skip(msg):
@@ -210,7 +211,7 @@ def main():
 
     login = s.go('http://www.okcupid.com')
     userpage = s.submit(login.first('form', id='loginbox_form'), paramdict=creds)
-    inbox = s.go('http://www.okcupid.com/messages')
+    inbox = s.go('http://www.okcupid.com/messages?folder=2') # sent mail
 
     if options.csv:
         printfirstresponsefeatureheader()
