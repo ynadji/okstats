@@ -39,8 +39,7 @@ from scrape import *
 sys.path.append('wulib')
 import wulib as wu
 sys.path.append('lbls')
-#import lbls
-lbls = None
+import lbls
 liwcdict = 'lbls/liwcdict.txt'
 
 replycolormap = {'red': 'very selectively', 'yellow': 'selectively', 'green': 'often', '': 'contacted'}
