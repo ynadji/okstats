@@ -10,21 +10,15 @@
 #   * cache in redis
 #   * try and pull down star ratings given (it's in javascript so it may not be possible)
 # * feature extraction for messages:
-#   * number of words
-#   * number of questions
-#   * avg. word length
 #   * emoticons
 #   * match percentages
 #   * message/profile similarity
 #   * profile similarity
-#   * message deltas
-#   * mutually chosen
-#   * I/me vs. you
+#   * message deltas (not sure what i meant by this)
 # * measures of success
 #   * # of replies
 #   * got name
 #   * got phone number
-# * tab-delimited output
 #
 
 import sys
@@ -32,6 +26,8 @@ from optparse import OptionParser
 from getpass import getpass
 import re
 import traceback
+import time
+import random
 
 from dateutil.parser import parse
 from scrape import *
@@ -43,6 +39,10 @@ import lbls
 liwcdict = 'lbls/liwcdict.txt'
 
 replycolormap = {'red': 'very selectively', 'yellow': 'selectively', 'green': 'often', '': 'contacted'}
+
+def makeinboxurl(low=1):
+    """"Get inbox URL starting at message `low`. folder=2 targets sent mail."""
+    return 'http://www.okcupid.com/messages?low=%d&infiniscroll=0&folder=2' % low
 
 def getselectivity(profpage):
     distance = int(profpage.find(re.compile('\d+ miles')).text.split()[0])
@@ -113,14 +113,10 @@ def parsemessage(msg):
     msgtexts = [re.sub(re.compile('\s\s'), ' ', re.sub(re.compile('<.*?>|Sent from the OkCupid app'), '', x)).strip() for x in msgtexts]
 
     try:
-        match = int(msg.first('span', class_='match').content.split('%')[0]),
-        friend = int(msg.first('span', class_='friend').content.split('%')[0]),
-        enemy = int(msg.first('span', class_='enemy').content.split('%')[0]),
+        match = int(msg.first('span', class_='match').content.split('%')[0])
         activep = True
     except ScrapeError:
         match = 'NA'
-        friend = 'NA'
-        enemy = 'NA'
         activep = False
 
     return {
@@ -130,8 +126,8 @@ def parsemessage(msg):
             'msgmobilep': msgmobilep,
 
             'match': match,
-            'friend': friend,
-            'enemy': enemy,
+            'friend': 'NA',
+            'enemy': 'NA',
             'activep': activep,
             'wechosep': 'You like each other!' in msg.content,
 
@@ -182,7 +178,7 @@ def printfirstresponsefeatures(parsedmsg, myusername):
                   parsedmsg['friend'],
                   parsedmsg['enemy'],
                   1 if parsedmsg['wechosep'] else 0] + liwcresults + \
-        [1 if len([x for x in parsedmsg['msgauthors'] if x != parsedmsg['buddyname']]) > 0 else 0]
+        [1 if len([x for x in parsedmsg['msgauthors'] if x != myusername]) > 0 else 0]
 
         print('\t'.join(map(str, fields)))
 
@@ -210,12 +206,14 @@ def main():
 
     login = s.go('http://www.okcupid.com')
     userpage = s.submit(login.first('form', id='loginbox_form'), paramdict=creds)
-    inbox = s.go('http://www.okcupid.com/messages?folder=2') # sent mail
+    low = 1
+    inbox = s.go(makeinboxurl(low))
 
     if options.csv:
         printfirstresponsefeatureheader()
 
     while True:
+        sys.stderr.write('parsing from %d to %d\n' % (low, low + 30))
         for url in messageurls(inbox):
             msg = s.go(url)
             if skip(msg): continue
@@ -233,7 +231,9 @@ def main():
             s.back()
 
         try:
-            inbox = nextpage(inbox)
+            low += 30
+            inbox = s.go(makeinboxurl(low))
+            time.sleep(random.randint(1, 5))
         except ScrapeError: # Fully parsed inbox!
             sys.stderr.write('Done\n')
             break
